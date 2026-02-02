@@ -24,7 +24,7 @@ Test changes by loading the plugin in Neovim:
 -- In Neovim, reload the module
 :lua package.loaded['himake'] = nil
 :lua require('himake').setup({})
-:HiMakePicker
+:HiMake pick
 ```
 
 ## Code Style Guidelines
@@ -137,6 +137,58 @@ vim.api.nvim_create_user_command('CommandName', function()
     require('module').function()
 end, { desc = 'Description' })
 ```
+
+### Subcommand Dispatcher Pattern
+For multi-command interfaces like `:HiMake`:
+```lua
+local subcommands = {
+    cmd = function() require('module').function() end,
+}
+
+vim.api.nvim_create_user_command('Command', function(opts)
+    local cmd_func = subcommands[opts.fargs[1]]
+    if cmd_func then cmd_func() end
+end, {
+    nargs = '?',
+    complete = function(_, line)
+        return vim.tbl_keys(subcommands)
+    end,
+})
+```
+
+### Async Job Execution
+Use `vim.fn.jobstart()` for running external commands:
+```lua
+local job_id = vim.fn.jobstart(cmd, {
+    on_stdout = function(_, data, _) end,
+    on_stderr = function(_, data, _) end,
+    on_exit = function(_, exit_code, _) end,
+    stdout_buffered = false,
+    stderr_buffered = false,
+})
+```
+
+## Available Commands
+
+### HiMake Subcommands
+- `:HiMake build` - Run himake compilation
+- `:HiMake refresh` - Generate compile_commands.json (+compilation_db)
+- `:HiMake config` - Configure build options (platform, variant, etc.)
+- `:HiMake status` - Show active package and build configuration
+- `:HiMake pick` - Select active .hmk package (same as `:HiMakePicker`)
+
+### Legacy Command
+- `:HiMakePicker` - Pick HiMake package (backward compatibility)
+
+## Default Keybindings
+
+| Key | Command | Description |
+|-----|---------|-------------|
+| `<leader>hp` | `:HiMake pick` | Pick HiMake package |
+| `<leader>hb` | `:HiMake build` | Run build |
+| `<leader>hr` | `:HiMake refresh` | Refresh compilation DB |
+| `<leader>hc` | `:HiMake config` | Configure build options |
+| `<leader>ho` | Toggle output window | Show/hide output buffer |
 
 ## Dependencies
 

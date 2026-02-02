@@ -146,21 +146,59 @@ function M.set_build_config()
 		return
 	end
 
-	local build_opts = {
-		{ id = 'platform', text = 'Platform (required)', value = config.get_build_platform() or '' },
-		{ id = 'variant', text = 'Variant (optional)', value = config.get_build_variant() or '' },
-		{ id = 'platform_variant', text = 'Platform Variant (optional)', value = config.get_build_platform_variant() or '' },
+	local platform_val = config.get_build_platform() or '(not set)'
+	local variant_val = config.get_build_variant() or '(not set)'
+	local platform_variant_val = config.get_build_platform_variant() or '(not set)'
+	local active_pkg = config.get_active_package()
+	local package_val = active_pkg and utils.get_relative_path(active_pkg) or '(not set)'
+
+	-- Create labels with fixed width for alignment (prefixed with command-line flags)
+	local labels = {
+		{ id = 'package', label = '(-g) Active Package:', value = package_val, is_picker = true },
+		{ id = 'platform', label = '(-p) Platform (required):', value = platform_val },
+		{ id = 'variant', label = '(-v) Variant (optional):', value = variant_val },
+		{ id = 'platform_variant', label = '(-pv) Platform Variant (optional):', value = platform_variant_val },
 	}
+
+	-- Find max label length for alignment
+	local max_label_len = 0
+	for _, item in ipairs(labels) do
+		max_label_len = math.max(max_label_len, #item.label)
+	end
+
+	-- Build aligned options
+	local build_opts = {}
+	for _, item in ipairs(labels) do
+		local padding = string.rep(' ', max_label_len - #item.label + 2) -- +2 for visual spacing
+		table.insert(build_opts, {
+			id = item.id,
+			text = item.label .. padding .. item.value,
+			value = item.value,
+			label = item.label:gsub('^%(%-[%w]%) ', ''):gsub(':$', ''), -- Remove flag prefix and colon for input prompt
+			is_picker = item.is_picker,
+		})
+	end
 
 	snacks.picker.pick({
 		title = "HiMake Build Configuration",
 		items = build_opts,
+		preview = false,
+		format = function(item)
+			return { { item.text } }
+		end,
 		confirm = function(picker, item)
 			picker:close()
+
+			-- If it's the package picker option, open the package picker
+			if item.is_picker then
+				M.pick_package()
+				return
+			end
+
 			-- Open input for the selected option
 			vim.ui.input({
-				prompt = item.text .. ': ',
-				default = item.value,
+				prompt = item.label .. ': ',
+				default = item.value ~= '(not set)' and item.value or '',
 			}, function(input)
 				if input ~= nil then
 					if item.id == 'platform' then
@@ -172,15 +210,12 @@ function M.set_build_config()
 					end
 
 					local display_value = input ~= '' and input or '(not set)'
-					vim.notify(item.text .. " set to: " .. display_value, vim.log.levels.INFO)
+					vim.notify(item.label .. " set to: " .. display_value, vim.log.levels.INFO)
 				end
 			end)
 		end,
 		layout = {
-			width = 0.6,
-			height = 0.4,
-			min_width = 50,
-			min_height = 5,
+			preset = 'select',
 		},
 	})
 end

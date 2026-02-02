@@ -8,6 +8,12 @@ M.defaults = {
   platform_key = 'himake_build_platform',
   variant_key = 'himake_build_variant',
   platform_variant_key = 'himake_build_platform_variant',
+  -- Default build values
+  build_defaults = {
+    platform = 'this',
+    variant = 'dbc3,debug,deprecated,strict_ng',
+    platform_variant = nil,
+  },
 }
 
 -- Global config state
@@ -46,7 +52,7 @@ function M.set_build_platform(platform)
 end
 
 function M.get_build_platform()
-  return vim.g[M.config.platform_key]
+  return vim.g[M.config.platform_key] or M.config.build_defaults.platform
 end
 
 function M.set_build_variant(variant)
@@ -54,7 +60,7 @@ function M.set_build_variant(variant)
 end
 
 function M.get_build_variant()
-  return vim.g[M.config.variant_key]
+  return vim.g[M.config.variant_key] or M.config.build_defaults.variant
 end
 
 function M.set_build_platform_variant(platform_variant)

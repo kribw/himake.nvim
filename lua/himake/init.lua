@@ -152,29 +152,32 @@ function M.set_build_config()
 	local active_pkg = config.get_active_package()
 	local package_val = active_pkg and utils.get_relative_path(active_pkg) or '(not set)'
 
-	-- Create labels with fixed width for alignment (prefixed with command-line flags)
+	-- Create labels with separate flag, key, and value for triple alignment
 	local labels = {
-		{ id = 'package', label = '(-g) Active Package:', value = package_val, is_picker = true },
-		{ id = 'platform', label = '(-p) Platform (required):', value = platform_val },
-		{ id = 'variant', label = '(-v) Variant (optional):', value = variant_val },
-		{ id = 'platform_variant', label = '(-pv) Platform Variant (optional):', value = platform_variant_val },
+		{ id = 'package', flag = '(-g)', key = 'Active Package:', value = package_val, is_picker = true },
+		{ id = 'platform', flag = '(-p)', key = 'Platform (required):', value = platform_val },
+		{ id = 'platform_variant', flag = '(-pv)', key = 'Platform Variant (optional):', value = platform_variant_val },
+		{ id = 'variant', flag = '(-v)', key = 'Variant (optional):', value = variant_val },
 	}
 
-	-- Find max label length for alignment
-	local max_label_len = 0
+	-- Find max lengths for each column
+	local max_flag_len = 0
+	local max_key_len = 0
 	for _, item in ipairs(labels) do
-		max_label_len = math.max(max_label_len, #item.label)
+		max_flag_len = math.max(max_flag_len, #item.flag)
+		max_key_len = math.max(max_key_len, #item.key)
 	end
 
-	-- Build aligned options
+	-- Build aligned options with three columns: flag, key, value
 	local build_opts = {}
 	for _, item in ipairs(labels) do
-		local padding = string.rep(' ', max_label_len - #item.label + 2) -- +2 for visual spacing
+		local flag_padding = string.rep(' ', max_flag_len - #item.flag)
+		local key_padding = string.rep(' ', max_key_len - #item.key + 2) -- +2 for visual spacing
 		table.insert(build_opts, {
 			id = item.id,
-			text = item.label .. padding .. item.value,
+			text = item.flag .. flag_padding .. ' ' .. item.key .. key_padding .. item.value,
 			value = item.value,
-			label = item.label:gsub(':$', ''), -- Remove colon for input prompt, but keep flag prefix
+			label = item.flag .. ' ' .. item.key:gsub(':$', ''), -- Keep flag and key for input prompt
 			is_picker = item.is_picker,
 		})
 	end

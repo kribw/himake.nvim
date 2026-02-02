@@ -188,6 +188,7 @@ local job_id = vim.fn.jobstart(cmd, {
 | `<leader>hb` | `:HiMake build` | Run build |
 | `<leader>hr` | `:HiMake refresh` | Refresh compilation DB |
 | `<leader>hc` | `:HiMake config` | Configure build options |
+| `<leader>hs` | `:HiMake status` | Show status |
 | `<leader>ho` | Toggle output window | Show/hide output buffer |
 
 ## Dependencies

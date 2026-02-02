@@ -26,6 +26,9 @@ function M.setup(opts)
 		-- Config: <leader>hc
 		vim.keymap.set('n', '<leader>hc', M.set_build_config,
 			{ desc = 'HiMake configure build options', silent = true })
+		-- Status: <leader>hs
+		vim.keymap.set('n', '<leader>hs', M.show_status,
+			{ desc = 'HiMake show status', silent = true })
 		-- Output toggle: <leader>ho
 		vim.keymap.set('n', '<leader>ho', utils.toggle_output_window,
 			{ desc = 'Toggle HiMake output window', silent = true })
@@ -224,20 +227,73 @@ function M.set_build_config()
 end
 
 -- Show current status (active package and build configuration)
+-- Opens a floating window that stays until user presses q or <Esc>
 function M.show_status()
 	local active_package = config.get_active_package()
 	local build_cfg = config.get_build_config()
 
-	local lines = {
-		"HiMake Status:",
+	local content = {
+		"HiMake Status",
+		string.rep("=", 40),
 		"",
-		"Active Package: " .. (active_package and utils.get_relative_path(active_package) or "(not set)"),
-		"Platform: " .. (build_cfg.platform or "(not set)"),
-		"Variant: " .. (build_cfg.variant or "(not set)"),
-		"Platform Variant: " .. (build_cfg.platform_variant or "(not set)"),
+		"Active Package:     " .. (active_package and utils.get_relative_path(active_package) or "(not set)"),
+		"Platform (-p):      " .. (build_cfg.platform or "(not set)"),
+		"Platform Var (-pv): " .. (build_cfg.platform_variant or "(not set)"),
+		"Variant (-v):       " .. (build_cfg.variant or "(not set)"),
+		"",
+		"Press q or <Esc> to close",
 	}
 
-	vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
+	-- Calculate window size
+	local width = 0
+	for _, line in ipairs(content) do
+		width = math.max(width, #line)
+	end
+	width = math.min(width + 4, 60) -- Add padding, max 60
+	local height = #content + 2 -- Add padding
+
+	-- Create buffer
+	local bufnr = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, content)
+	vim.api.nvim_buf_set_option(bufnr, 'modifiable', false)
+	vim.api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
+	vim.api.nvim_buf_set_option(bufnr, 'bufhidden', 'wipe')
+
+	-- Calculate position (center of screen)
+	local win_width = vim.api.nvim_get_option('columns')
+	local win_height = vim.api.nvim_get_option('lines')
+	local row = math.floor((win_height - height) / 2)
+	local col = math.floor((win_width - width) / 2)
+
+	-- Open floating window
+	local winid = vim.api.nvim_open_win(bufnr, true, {
+		relative = 'editor',
+		row = row,
+		col = col,
+		width = width,
+		height = height,
+		style = 'minimal',
+		border = 'rounded',
+		title = ' HiMake Status ',
+		title_pos = 'center',
+	})
+
+	-- Set keymaps to close window
+	local opts = { buffer = bufnr, silent = true }
+	vim.keymap.set('n', 'q', function() vim.api.nvim_win_close(winid, true) end, opts)
+	vim.keymap.set('n', '<Esc>', function() vim.api.nvim_win_close(winid, true) end, opts)
+	vim.keymap.set('n', '<CR>', function() vim.api.nvim_win_close(winid, true) end, opts)
+
+	-- Also close on any other key press
+	vim.api.nvim_create_autocmd('BufLeave', {
+		buffer = bufnr,
+		callback = function()
+			if vim.api.nvim_win_is_valid(winid) then
+				vim.api.nvim_win_close(winid, true)
+			end
+		end,
+		once = true,
+	})
 end
 
 -- Helper function to run himake command

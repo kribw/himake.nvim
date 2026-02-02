@@ -174,7 +174,7 @@ function M.set_build_config()
 			id = item.id,
 			text = item.label .. padding .. item.value,
 			value = item.value,
-			label = item.label:gsub('^%(%-[%w]%) ', ''):gsub(':$', ''), -- Remove flag prefix and colon for input prompt
+			label = item.label:gsub(':$', ''), -- Remove colon for input prompt, but keep flag prefix
 			is_picker = item.is_picker,
 		})
 	end
